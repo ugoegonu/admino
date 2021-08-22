@@ -1,0 +1,119 @@
+#! /usr/bin/env python3
+
+
+import getopt,subprocess, sys
+
+__help = \
+'''
+Welcome to the Admino system information script
+Please follow the following instructions to use it
+
+- admino -H --> Provides hostname
+- admino -i <interface> --provides the IP address of provided interface
+- admino -u --> provides the list of users of the system
+- admino -g <groupname> --> provides the list of users for a specific <group>
+- admino -t <user> --> provides the directory list tree for a system <user>
+- admino -l --> provides the list of IPs from last remote connections
+- admino -p --> provides the top 10 processes which are using more memory
+- admino -s --> provides the list of SUDO invoked commands from auth.log
+- admino -d --> list of network ports and protocol:
+'''
+
+
+
+def response(opt :str,info : str, resp :list):
+    print(f"argument entered is {opt}\n{info}\n\n{resp}")
+    sys.exit()
+
+def host_info(info :list):
+   return f'''
+        Static hostname: {info[0]}
+              Icon name: {info[1]}
+                Chassis: {info[2]}
+             Machine ID: {info[3]}
+                Boot ID: {info[4]}
+         Virtualization: {info[5]}
+       Operating System: {info[6]}
+                 Kernel: {info[7]}
+           Architecture: {info[8]}
+    '''
+
+
+
+def admino(options):
+    if options:
+        for opt, arg in options:
+            if opt == "--help":
+                response(opt,"",__help)
+            elif opt == "-H":
+                info = "Provides hostname information"
+                host_name = subprocess.getoutput("hostnamectl | grep 'hostname'")
+                Icon_name = subprocess.getoutput("hostnamectl | grep 'hostname'")
+                chassis = subprocess.getoutput("hostnamectl | grep 'hostname'")
+                Machine_ID = subprocess.getoutput("hostnamectl | grep 'Machine_ID'")
+                Boot_ID = subprocess.getoutput("hostnamectl | grep 'Boot ID'")
+                Virtualization = subprocess.getoutput("hostnamectl | grep 'Virtualization'")
+                Operating_System = subprocess.getoutput("hostnamectl | grep 'Operating System'")
+                Kernel = subprocess.getoutput("hostnamectl | grep 'Kernel'")
+                Architecture = subprocess.getoutput("hostnamectl | grep 'Architecture'")
+                resp = [host_name,Icon_name,chassis,Machine_ID,Boot_ID,Virtualization,Operating_System,Kernel,Architecture]
+                response(opt,info, host_info(resp))
+
+            elif opt == "-i":
+                info = "IP address of provided interface"
+                resp = subprocess.getoutput(f'ifconfig {arg}')
+                response(opt, info, resp)
+
+            elif opt == "-u":
+                info = "list of users of the system"
+                resp = subprocess.getoutput("(awk -F: '{print $1}' /etc/passwd)")
+                response(opt,info, resp)
+
+            elif opt == "-g":
+                info = "list of users for a specific <group>"
+                resp = subprocess.getoutput("awk -F':' ' /%(arg)s/{print $4}' /etc/group"%{'arg':arg})
+                response(opt, info, resp)
+
+            elif opt == "-t":
+                info = "Directory list tree for a system <user>"
+                resp = subprocess.getoutput(f"tree /home/{arg}")
+                response(opt,info, resp)
+
+            elif opt == '-l':
+                info = "list of IPs from last remote connections"
+                resp = subprocess.getoutput("last -20 -w")
+                response(opt,info, resp)
+
+            elif opt == "-p":
+                info = "Top 10 processes which are using more memory"
+                resp = subprocess.getoutput("ps aux | head -1; ps aux |sort -rnk 4 | head -10")
+                response(opt,info, resp)
+
+            elif opt == "-s":
+                info = "list of sudo invoked commands"
+                resp = subprocess.getoutput("grep -ia 'sudo' /var/log/auth.log |sort -r| sed '22,$d'")
+                response(opt,info, resp)
+
+            elif opt == "-d":
+                info = "list of network ports and protocol"
+                resp = subprocess.getoutput("netstat -lntu")
+                response(opt,info, resp)
+            
+                
+            
+
+def main(argv):
+    try:
+        options, args = getopt.getopt(argv, "H i: u g: t: l p s d", ['help'])
+    except getopt.GetoptError:
+        print("Error! Selected argument cannot be found")
+        sys.exit(2)
+
+    admino(options)
+
+    
+
+
+if __name__ == '__main__':
+    main(sys.argv[1:])
+    
